@@ -2,10 +2,34 @@ package com.fieldpin.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-val Purple80 = Color(0xFFD0BCFF)
-val PurpleGrey80 = Color(0xFFCCC2DC)
-val Pink80 = Color(0xFFEFB8C8)
+val Black = Color(0xFF000000)
+val Ink = Color(0xFF070B0B)
+val InkMid = Color(0xFF0E1514)
+val InkHigh = Color(0xFF151E1D)
+val InkTop = Color(0xFF1C2827)
+val Line = Color(0xFF2A3A38)
+val LineSoft = Color(0xFF1B2726)
 
-val Purple40 = Color(0xFF6650a4)
-val PurpleGrey40 = Color(0xFF625b71)
-val Pink40 = Color(0xFF7D5260)
+val Teal300 = Color(0xFF5EEAD4)
+val Teal400 = Color(0xFF2DD4BF)
+val Teal600 = Color(0xFF0D9488)
+val Teal700 = Color(0xFF0F766E)
+val TealDeep = Color(0xFF0B3B36)
+val Green400 = Color(0xFF4ADE80)
+val Green600 = Color(0xFF16A34A)
+val Green700 = Color(0xFF15803D)
+val GreenDeep = Color(0xFF12361F)
+
+val White = Color(0xFFFFFFFF)
+val Snow = Color(0xFFF2F7F6)
+val Mist = Color(0xFF9DB1AE)
+val Slate = Color(0xFF52625F)
+
+val ErrorRed = Color(0xFFFF6B6B)
+val ErrorRedLight = Color(0xFFB3261E)
+
+object StatusColors {
+    val Active = Color(0xFF22C55E)
+    val Repair = Color(0xFFF59E0B)
+    val Closed = Color(0xFFEF4444)
+}
