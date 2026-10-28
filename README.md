@@ -78,6 +78,12 @@ picker. The brief says four features done well beat seven half-done, so I spent 
 correctness of 1-6 (geodesy, geofence, stamping, sync). The offline map is a small saved tile pack
 (see *Offline map*).
 
+## App screenshots
+
+<img width="1080" height="2400" alt="Screenshot_2026-10-28-20-51-09-73_63d656c23daf5079fc11e1266c02c638" src="https://github.com/user-attachments/assets/c215da17-0c06-4aab-8aee-cfc3169eba88" />
+<img width="1080" height="2400" alt="Screenshot_2026-10-28-20-50-49-32_63d656c23daf5079fc11e1266c02c638" src="https://github.com/user-attachments/assets/687496ac-a3b9-4ba1-b51f-39206470c768" />
+<img width="1080" height="2400" alt="Screenshot_2026-10-28-20-47-50-10_63d656c23daf5079fc11e1266c02c638" src="https://github.com/user-attachments/assets/e2704a2f-25ef-4808-a3ab-8389d7465fcc" />
+
 ## Offline map (saved on first run)
 
 On the first run, after sign-in and the first sync, a one-time **"Saving your map"** screen appears
