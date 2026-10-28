@@ -201,21 +201,26 @@ object GeoMath {
     /** Area-weighted centroid (planar on lat/lng, fine at site scale); mean of vertices if degenerate. */
     fun centroid(polygon: List<GeoPoint>): GeoPoint {
         if (polygon.isEmpty()) return GeoPoint(0.0, 0.0)
+        val origin = polygon.first()
         var a2 = 0.0
         var cx = 0.0
         var cy = 0.0
         for (i in polygon.indices) {
             val p = polygon[i]
             val q = polygon[(i + 1) % polygon.size]
-            val cross = p.lng * q.lat - q.lng * p.lat
+            val px = p.lng - origin.lng
+            val py = p.lat - origin.lat
+            val qx = q.lng - origin.lng
+            val qy = q.lat - origin.lat
+            val cross = px * qy - qx * py
             a2 += cross
-            cx += (p.lng + q.lng) * cross
-            cy += (p.lat + q.lat) * cross
+            cx += (px + qx) * cross
+            cy += (py + qy) * cross
         }
         if (abs(a2) < 1e-18) {
             return GeoPoint(polygon.map { it.lat }.average(), polygon.map { it.lng }.average())
         }
-        return GeoPoint(cy / (3 * a2), cx / (3 * a2))
+        return GeoPoint(origin.lat + cy / (3 * a2), origin.lng + cx / (3 * a2))
     }
 
     /** A point guaranteed to lie inside the polygon (centroid when it does, else a vertex-pair midpoint). */
