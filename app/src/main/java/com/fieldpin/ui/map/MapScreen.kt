@@ -7,7 +7,10 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.rememberScrollState
+import com.fieldpin.domain.model.SiteStatus
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -22,7 +25,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.MyLocation
-import androidx.compose.material.icons.filled.ThreeDRotation
 import androidx.compose.material.icons.filled.ZoomOutMap
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -79,6 +81,8 @@ fun MapScreen(
     vm: MapViewModel = koinViewModel(),
 ) {
     val sites by vm.sites.collectAsStateWithLifecycle()
+    val visibleSites by vm.visibleSites.collectAsStateWithLifecycle()
+    val filter by vm.filter.collectAsStateWithLifecycle()
     val selected by vm.selected.collectAsStateWithLifecycle()
     val fix by vm.live.fix.collectAsStateWithLifecycle()
     val permission = rememberPermissionController(PermissionKind.Location)
@@ -86,6 +90,7 @@ fun MapScreen(
 
     val cameraState = rememberCameraPositionState { position = vm.camera ?: IndiaOverview }
     var mapType by rememberSaveable { mutableStateOf(MapType.NORMAL) }
+    val basemap = rememberBasemap(mapType)
     var tilted by rememberSaveable { mutableStateOf(false) }
     var mapLoaded by remember { mutableStateOf(false) }
     var fitted by remember { mutableStateOf(vm.camera != null) }
@@ -119,23 +124,35 @@ fun MapScreen(
     Box(Modifier.fillMaxSize()) {
         FieldMapView(
             cameraState = cameraState,
-            mapType = mapType,
+            mapType = basemap.mapType,
             onMapClick = vm::onMapTap,
             onMapLoaded = { mapLoaded = true },
         ) {
-            SiteOverlays(sites = sites, selectedId = selectedId, showPins = true, onSiteClick = vm::select)
+            BasemapOverlay(basemap)
+            SiteOverlays(sites = visibleSites, selectedId = selectedId, showPins = true, onSiteClick = vm::select)
             UserLocationOverlay(fix)
         }
 
         Column(Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             if (!BuildConfig.MAPS_KEY_CONFIGURED) MapsKeyBanner()
+            OfflineMapStatus(basemap, Modifier.align(Alignment.CenterHorizontally))
             if (!permission.isGranted) {
                 PermissionPrompt(permission, compact = true)
             } else if (!gpsOn) {
                 GpsOffBanner()
             }
-            Row(Modifier.fillMaxWidth()) {
-                Spacer(Modifier.weight(1f))
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+                Row(
+                    Modifier.weight(1f).horizontalScroll(rememberScrollState()).padding(end = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    MapFilterChip("All", null, sites.size, filter == null) { vm.filter.value = null }
+                    SiteStatus.entries.forEach { status ->
+                        MapFilterChip(status.filterLabel, status, sites.count { it.status == status }, filter == status) {
+                            vm.filter.value = if (filter == status) null else status
+                        }
+                    }
+                }
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     MapFab(
                         Icons.Filled.Layers,
@@ -144,8 +161,8 @@ fun MapScreen(
                         active = mapType != MapType.NORMAL,
                     )
                     val scope = rememberCoroutineScope()
-                    MapFab(
-                        Icons.Filled.ThreeDRotation,
+                    MapTextFab(
+                        "3D",
                         "Toggle 3D view",
                         onClick = {
                             tilted = !tilted

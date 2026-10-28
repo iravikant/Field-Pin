@@ -66,6 +66,19 @@ class AppPrefs(context: Context) {
         _lastSyncAt.value = ms
     }
 
+    private val _offlineMapComplete = MutableStateFlow(prefs.getBoolean(KEY_OFFLINE_DONE, false))
+    val offlineMapComplete: StateFlow<Boolean> = _offlineMapComplete.asStateFlow()
+
+    fun setOfflineMapComplete(done: Boolean) {
+        prefs.edit().putBoolean(KEY_OFFLINE_DONE, done).apply()
+        _offlineMapComplete.value = done
+    }
+
+    /** The first-run "saving your map" screen is shown once. */
+    var offlineSetupSeen: Boolean
+        get() = prefs.getBoolean(KEY_SETUP_SEEN, false)
+        set(value) = prefs.edit().putBoolean(KEY_SETUP_SEEN, value).apply()
+
     /** Needed to tell "never asked" from "permanently denied": both report no rationale. */
     fun wasPermissionAsked(key: String): Boolean = prefs.getBoolean("asked_$key", false)
 
@@ -76,5 +89,7 @@ class AppPrefs(context: Context) {
     private companion object {
         const val KEY_THEME = "theme"
         const val KEY_LAST_SYNC = "last_sync"
+        const val KEY_OFFLINE_DONE = "offline_map_complete"
+        const val KEY_SETUP_SEEN = "offline_setup_seen"
     }
 }

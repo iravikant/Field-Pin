@@ -3,7 +3,6 @@ package com.fieldpin.ui.theme
 import androidx.compose.ui.graphics.Color
 import com.fieldpin.domain.model.SiteStatus
 
-// Brand palette: black, teal, green, white.
 val Black = Color(0xFF000000)
 val Ink = Color(0xFF070B0B)
 val InkMid = Color(0xFF0E1514)
@@ -30,7 +29,6 @@ val Slate = Color(0xFF52625F)
 val ErrorRed = Color(0xFFFF6B6B)
 val ErrorRedLight = Color(0xFFB3261E)
 
-/** Fixed semantic colours of the site status (green = Active, amber = Needs repair, red = Closed). */
 object StatusColors {
     val Active = Color(0xFF22C55E)
     val Repair = Color(0xFFF59E0B)

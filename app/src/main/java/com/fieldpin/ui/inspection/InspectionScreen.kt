@@ -58,6 +58,8 @@ import com.fieldpin.ui.components.FileImage
 import com.fieldpin.ui.components.FpTextField
 import com.fieldpin.ui.components.PrimaryButton
 import com.fieldpin.ui.components.SectionLabel
+import com.fieldpin.ui.preview.ImageGalleryViewer
+import com.fieldpin.ui.preview.ViewerImage
 import com.fieldpin.ui.theme.StatusColors
 import com.fieldpin.ui.theme.color
 import org.koin.compose.viewmodel.koinViewModel
@@ -226,24 +228,21 @@ fun InspectionScreen(
     }
 
     preview?.let { path ->
-        Dialog(onDismissRequest = { preview = null }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
-            Box(Modifier.fillMaxSize().background(Color.Black)) {
-                FileImage(path, Modifier.fillMaxSize(), maxSide = 1600, contentScale = ContentScale.Fit)
-                Row(Modifier.statusBarsPadding().padding(12.dp).align(Alignment.TopEnd)) {
-                    if (current?.isDraft == true) {
-                        Surface(shape = CircleShape, color = Color.Black.copy(alpha = 0.6f)) {
-                            IconButton(onClick = { vm.removePhoto(path); preview = null }) {
-                                Icon(Icons.Filled.Delete, "Delete photo", tint = Color.White)
-                            }
-                        }
-                        Spacer(Modifier.width(8.dp))
-                    }
-                    Surface(shape = CircleShape, color = Color.Black.copy(alpha = 0.6f)) {
-                        IconButton(onClick = { preview = null }) { Icon(Icons.Filled.Close, "Close", tint = Color.White) }
-                    }
+        val photos = current?.photos.orEmpty()
+        val canDelete = current?.isDraft == true
+        ImageGalleryViewer(
+            images = photos.map { ViewerImage(it, title = current?.siteName, subtitle = "Inspection photo") },
+            startIndex = photos.indexOf(path).coerceAtLeast(0),
+            onClose = { preview = null },
+            extraActions = { page ->
+                if (canDelete) {
+                    IconButton(onClick = {
+                        photos.getOrNull(page)?.let { vm.removePhoto(it) }
+                        preview = null
+                    }) { Icon(Icons.Filled.Delete, "Delete photo", tint = Color.White) }
                 }
-            }
-        }
+            },
+        )
     }
 
     if (confirmDiscard) {

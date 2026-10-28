@@ -60,7 +60,9 @@ import com.fieldpin.ui.components.rememberGpsEnabled
 import com.fieldpin.ui.components.rememberPermissionController
 import com.fieldpin.ui.components.StatusDot
 import com.fieldpin.BuildConfig
+import com.fieldpin.ui.map.BasemapOverlay
 import com.fieldpin.ui.map.DraftOverlay
+import com.fieldpin.ui.map.rememberBasemap
 import com.fieldpin.ui.map.FieldMapView
 import com.fieldpin.ui.map.MapFab
 import com.fieldpin.ui.map.MapsKeyBanner
@@ -90,6 +92,7 @@ fun DrawSiteScreen(onBack: () -> Unit, vm: DrawSiteViewModel = koinViewModel()) 
     val cameraState = rememberCameraPositionState { position = CameraPosition.fromLatLngZoom(LatLng(22.5, 79.0), 4f) }
     // Satellite imagery is the best canvas for tracing a boundary.
     var mapType by rememberSaveable { mutableStateOf(MapType.HYBRID) }
+    val basemap = rememberBasemap(mapType)
     var mapLoaded by remember { mutableStateOf(false) }
     var positioned by remember { mutableStateOf(false) }
     val paddingPx = with(LocalDensity.current) { 64.dp.roundToPx() }
@@ -110,10 +113,11 @@ fun DrawSiteScreen(onBack: () -> Unit, vm: DrawSiteViewModel = koinViewModel()) 
     Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
         FieldMapView(
             cameraState = cameraState,
-            mapType = mapType,
+            mapType = basemap.mapType,
             onMapClick = vm::addPoint,
             onMapLoaded = { mapLoaded = true },
         ) {
+            BasemapOverlay(basemap)
             SiteOverlays(sites = sites, selectedId = null, showPins = false, onSiteClick = {})
             DraftOverlay(points = points, invalid = metrics.selfIntersects, onMovePoint = vm::movePoint)
             UserLocationOverlay(fix)

@@ -4,6 +4,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -15,7 +20,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.MyLocation
+import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Visibility
@@ -116,6 +124,12 @@ fun LoginScreen(vm: LoginViewModel = koinViewModel()) {
             Spacer(Modifier.height(20.dp))
             PrimaryButton("Sign in", onClick = vm::submit, loading = state.loading, modifier = Modifier.fillMaxWidth())
             Spacer(Modifier.height(20.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FeatureChip(Icons.Filled.CloudDone, "Works offline")
+                FeatureChip(Icons.Filled.MyLocation, "Geofenced")
+                FeatureChip(Icons.Filled.PhotoCamera, "Stamped photos")
+            }
+            Spacer(Modifier.height(20.dp))
             Text(
                 "You stay signed in after restarting the app.\nWorks offline once signed in.",
                 style = MaterialTheme.typography.bodySmall,
@@ -124,5 +138,20 @@ fun LoginScreen(vm: LoginViewModel = koinViewModel()) {
             )
             Spacer(Modifier.height(24.dp))
         }
+    }
+}
+
+@Composable
+private fun FeatureChip(icon: ImageVector, text: String) {
+    Row(
+        Modifier
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+        Spacer(Modifier.width(6.dp))
+        Text(text, style = MaterialTheme.typography.labelSmall)
     }
 }

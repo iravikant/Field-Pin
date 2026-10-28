@@ -22,5 +22,5 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Field Pin"
+rootProject.name = "FieldPin"
 include(":app")

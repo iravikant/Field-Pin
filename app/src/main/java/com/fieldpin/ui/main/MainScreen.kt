@@ -48,6 +48,18 @@ fun MainScreen(
     onMapSite: () -> Unit,
     onOpenInspection: (String) -> Unit,
 ) {
+    Box(Modifier.fillMaxSize()) {
+        MainScaffold(onOpenSite, onMapSite, onOpenInspection)
+        OfflineSetupOverlay() // first run only: "Saving your map"
+    }
+}
+
+@Composable
+private fun MainScaffold(
+    onOpenSite: (String) -> Unit,
+    onMapSite: () -> Unit,
+    onOpenInspection: (String) -> Unit,
+) {
     var tab by rememberSaveable { mutableStateOf(Tab.Sites) }
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()

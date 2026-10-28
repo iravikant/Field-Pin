@@ -47,3 +47,14 @@ data class SiteRow(
     @Embedded val site: SiteEntity,
     val pendingInspections: Int,
 )
+
+@Entity(tableName = "site_documents", indices = [Index("siteId")])
+data class SiteDocumentEntity(
+    @PrimaryKey val id: String,
+    val siteId: String,
+    val name: String,
+    val mimeType: String,
+    val sizeBytes: Long,
+    val path: String,
+    val addedAt: Long,
+)

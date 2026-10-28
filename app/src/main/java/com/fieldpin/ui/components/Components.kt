@@ -16,7 +16,21 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Business
+import androidx.compose.material.icons.filled.ElectricalServices
+import androidx.compose.material.icons.filled.Park
+import androidx.compose.material.icons.filled.Place
 import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material.icons.filled.WaterDrop
+import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.runtime.getValue
+import com.fieldpin.domain.model.SiteCategory
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -311,5 +325,65 @@ fun PolygonPreview(boundary: List<GeoPoint>, color: Color, modifier: Modifier = 
         drawPath(path, color.copy(alpha = 0.22f))
         drawPath(path, color, style = Stroke(width = 2.5.dp.toPx()))
         for (i in boundary.indices) drawCircle(color, 3.5.dp.toPx(), pt(i))
+    }
+}
+
+fun SiteCategory.icon(): ImageVector = when (this) {
+    SiteCategory.PARK -> Icons.Filled.Park
+    SiteCategory.WATER_TANK -> Icons.Filled.WaterDrop
+    SiteCategory.SOLAR_SITE -> Icons.Filled.WbSunny
+    SiteCategory.SUBSTATION -> Icons.Filled.ElectricalServices
+    SiteCategory.BUILDING -> Icons.Filled.Business
+    SiteCategory.OTHER -> Icons.Filled.Place
+}
+
+/** Rounded icon tile for a site's category, tinted with its status colour. */
+@Composable
+fun CategoryTile(category: SiteCategory, status: SiteStatus, modifier: Modifier = Modifier, size: Dp = 48.dp) {
+    val tint = status.color()
+    Box(
+        modifier
+            .size(size)
+            .clip(RoundedCornerShape(14.dp))
+            .background(tint.copy(alpha = 0.16f)),
+        contentAlignment = Alignment.Center,
+    ) { Icon(category.icon(), category.label, tint = tint, modifier = Modifier.size(size * 0.5f)) }
+}
+
+/** Dashboard number with an icon, used in the sites header. */
+@Composable
+fun StatCard(label: String, value: String, icon: ImageVector, tint: Color, modifier: Modifier = Modifier) {
+    FpCard(modifier = modifier, contentPadding = 14.dp) {
+        Column {
+            Box(
+                Modifier.size(30.dp).clip(CircleShape).background(tint.copy(alpha = 0.16f)),
+                contentAlignment = Alignment.Center,
+            ) { Icon(icon, null, tint = tint, modifier = Modifier.size(16.dp)) }
+            Spacer(Modifier.height(10.dp))
+            Text(value, style = MaterialTheme.typography.headlineSmall)
+            Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/** Pulsing placeholder shown while the first database read is in flight. */
+@Composable
+fun SkeletonCard(modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "skeleton")
+    val alpha by transition.animateFloat(
+        initialValue = 0.25f, targetValue = 0.6f,
+        animationSpec = infiniteRepeatable(tween(800), RepeatMode.Reverse), label = "alpha",
+    )
+    val block = MaterialTheme.colorScheme.surfaceContainerHighest.copy(alpha = alpha)
+    FpCard(modifier = modifier.fillMaxWidth()) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.size(48.dp).clip(RoundedCornerShape(14.dp)).background(block))
+            Spacer(Modifier.width(14.dp))
+            Column(Modifier.weight(1f)) {
+                Box(Modifier.fillMaxWidth(0.6f).height(14.dp).clip(CircleShape).background(block))
+                Spacer(Modifier.height(10.dp))
+                Box(Modifier.fillMaxWidth(0.4f).height(10.dp).clip(CircleShape).background(block))
+            }
+        }
     }
 }

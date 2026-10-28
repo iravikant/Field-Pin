@@ -17,10 +17,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -54,6 +57,7 @@ import com.fieldpin.ui.components.KeyValueRow
 import com.fieldpin.ui.components.PrimaryButton
 import com.fieldpin.ui.components.SecondaryButton
 import com.fieldpin.ui.components.SectionLabel
+import com.fieldpin.ui.map.formatMegabytes
 import com.fieldpin.ui.theme.StatusColors
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -70,6 +74,10 @@ fun AccountScreen(vm: AccountViewModel = koinViewModel()) {
     val report by vm.lastReport.collectAsStateWithLifecycle()
     val sites by vm.sites.collectAsStateWithLifecycle()
     val simulated by vm.simulated.collectAsStateWithLifecycle()
+    val offlineStats by vm.offlineStats.collectAsStateWithLifecycle()
+    val offlineProgress by vm.offlineProgress.collectAsStateWithLifecycle()
+    val offlineComplete by vm.offlineComplete.collectAsStateWithLifecycle()
+    val offlineError by vm.offlineError.collectAsStateWithLifecycle()
 
     var confirmLogout by remember { mutableStateOf(false) }
     var picker by remember { mutableStateOf<Picker?>(null) }
@@ -144,6 +152,65 @@ fun AccountScreen(vm: AccountViewModel = koinViewModel()) {
                                 )
                             }
                         }
+                    }
+                }
+            }
+        }
+
+        item {
+            Column {
+                SectionLabel("Offline map")
+                FpCard {
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Filled.CloudDownload, null,
+                                tint = if (offlineComplete) StatusColors.Active else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                            Spacer(Modifier.width(10.dp))
+                            Text(
+                                when {
+                                    offlineProgress != null -> "Saving the map…"
+                                    offlineComplete -> "Saved on this device"
+                                    offlineStats.tiles > 0 -> "Partly saved"
+                                    else -> "Not saved yet"
+                                },
+                                style = MaterialTheme.typography.titleSmall,
+                            )
+                        }
+                        Spacer(Modifier.height(8.dp))
+                        KeyValueRow("Stored", if (offlineStats.tiles == 0) "Nothing" else "${offlineStats.tiles} tiles · ${formatMegabytes(offlineStats.bytes)}")
+                        KeyValueRow("Coverage", "Overview + every site")
+                        offlineProgress?.let { p ->
+                            Spacer(Modifier.height(6.dp))
+                            LinearProgressIndicator(progress = { p.fraction }, modifier = Modifier.fillMaxWidth().height(6.dp))
+                            Text(
+                                "${(p.fraction * 100).toInt()}% · ${p.done} of ${p.total}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = 4.dp),
+                            )
+                        }
+                        offlineError?.let {
+                            Text(it, style = MaterialTheme.typography.bodySmall, color = StatusColors.Repair, modifier = Modifier.padding(top = 6.dp))
+                        }
+                        Spacer(Modifier.height(12.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            PrimaryButton(
+                                if (offlineStats.tiles == 0) "Download" else "Update",
+                                onClick = vm::downloadOfflineMap,
+                                loading = offlineProgress != null,
+                                icon = Icons.Filled.CloudDownload,
+                                modifier = Modifier.weight(1f),
+                            )
+                            SecondaryButton("Delete", vm::deleteOfflineMap, Modifier.weight(1f), enabled = offlineStats.tiles > 0 && offlineProgress == null)
+                        }
+                        Text(
+                            "Map data © OpenStreetMap contributors. Saved so the map works with no signal. Google's own map tiles cannot be stored.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 10.dp),
+                        )
                     }
                 }
             }

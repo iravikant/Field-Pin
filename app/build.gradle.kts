@@ -8,11 +8,17 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+// Optional overrides live in local.properties (git-ignored). See local.properties.example.
+// Reading through `providers` keeps the file tracked as a configuration-cache input.
 val localPropsText: String? =
     providers.fileContents(rootProject.layout.projectDirectory.file("local.properties")).asText.orNull
 val localProps = Properties().apply { localPropsText?.let { load(StringReader(it)) } }
 
 fun localProp(key: String, default: String): String = localProps.getProperty(key, default).trim()
+
+// Google Maps key: read from local.properties (git-ignored), never from source. The project still
+// builds without it; the map then shows a "key missing" notice instead of tiles.
+val mapsApiKey = localProp("MAPS_API_KEY", "")
 
 android {
     namespace = "com.fieldpin"
@@ -23,13 +29,21 @@ android {
     defaultConfig {
         applicationId = "com.fieldpin"
         minSdk = 26
-        targetSdk = 37
+        targetSdk = 36
         versionCode = 1
-        versionName = "1.0"
-
-        manifestPlaceholders["MAPS_API_KEY"] = localProp("MAPS_API_KEY", "")
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        manifestPlaceholders["MAPS_API_KEY"] = mapsApiKey
+        buildConfigField("boolean", "MAPS_KEY_CONFIGURED", "${mapsApiKey.isNotBlank()}")
+        // Tile server for the saved offline map (XYZ template). Google's own tiles may not be
+        // stored, so offline uses OpenStreetMap-style tiles. Swap for a provider whose terms
+        // allow offline use in production (self-hosted, MapTiler, Stadia, ...).
+        buildConfigField(
+            "String", "TILE_URL_TEMPLATE",
+            "\"${localProp("TILE_URL_TEMPLATE", "https://tile.openstreetmap.org/{z}/{x}/{y}.png")}\"",
+        )
     }
 
     buildTypes {
@@ -81,10 +95,9 @@ dependencies {
     implementation(libs.androidx.camera.camera2)
     implementation(libs.androidx.camera.lifecycle)
     implementation(libs.androidx.camera.view)
-    implementation(libs.androidx.exifinterface)
 
     implementation(libs.play.services.location)
-    implementation(libs.play.services.maps)
+    implementation(libs.maps.compose) // Google Maps SDK for Android + Compose wrapper
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
 

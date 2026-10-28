@@ -2,6 +2,9 @@ package com.fieldpin.ui.detail
 
 import android.content.ClipData
 import android.content.Intent
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -15,13 +18,11 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CloudDone
-import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Share
@@ -43,8 +44,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
-import androidx.compose.foundation.lazy.items
-import android.widget.Toast
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.fieldpin.core.Fmt
 import com.fieldpin.domain.model.Site
@@ -58,6 +57,7 @@ import com.fieldpin.ui.components.FpCard
 import com.fieldpin.ui.components.FpTextField
 import com.fieldpin.ui.components.GpsOffBanner
 import com.fieldpin.ui.components.KeyValueRow
+import com.fieldpin.ui.components.MetricTile
 import com.fieldpin.ui.components.PendingBadge
 import com.fieldpin.ui.components.PermissionKind
 import com.fieldpin.ui.components.PermissionPrompt
@@ -69,6 +69,9 @@ import com.fieldpin.ui.components.StatusDot
 import com.fieldpin.ui.components.StatusPill
 import com.fieldpin.ui.components.rememberGpsEnabled
 import com.fieldpin.ui.components.rememberPermissionController
+import com.fieldpin.ui.preview.DocumentViewer
+import com.fieldpin.ui.preview.ImageGalleryViewer
+import com.fieldpin.ui.preview.ViewerImage
 import com.fieldpin.ui.theme.StatusColors
 import com.fieldpin.ui.theme.color
 import org.koin.compose.viewmodel.koinViewModel
@@ -84,10 +87,20 @@ fun SiteDetailScreen(
     val context = LocalContext.current
     val site by vm.site.collectAsStateWithLifecycle()
     val history by vm.history.collectAsStateWithLifecycle()
+    val documents by vm.documents.collectAsStateWithLifecycle()
     val checkIn by vm.checkIn.collectAsStateWithLifecycle()
     val permission = rememberPermissionController(PermissionKind.Location)
     val gpsOn by rememberGpsEnabled()
     var editing by remember { mutableStateOf(false) }
+    var previewId by remember { mutableStateOf<String?>(null) }
+    var galleryStart by remember { mutableStateOf<Int?>(null) }
+    var openDocumentId by remember { mutableStateOf<String?>(null) }
+
+    // Files are copied into the app, so no long-lived permission on the picked URIs is needed.
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        vm.attachDocuments(uris)
+    }
+    val addFiles: () -> Unit = { picker.launch(arrayOf("*/*")) }
 
     LaunchedEffect(permission.isGranted) { vm.live.granted.value = permission.isGranted }
     LaunchedEffect(vm) {
@@ -100,6 +113,18 @@ fun SiteDetailScreen(
     }
 
     val current: Site? = site
+    val photos: List<ViewerImage> = remember(history, current?.name) {
+        history.flatMap { inspection ->
+            inspection.photos.map { path ->
+                ViewerImage(
+                    path = path,
+                    title = current?.name,
+                    subtitle = Fmt.dateTime(inspection.submittedAt ?: inspection.checkInAt),
+                )
+            }
+        }
+    }
+
     Column(Modifier.fillMaxSize().statusBarsPadding()) {
         Row(Modifier.padding(horizontal = 8.dp, vertical = 4.dp), verticalAlignment = Alignment.CenterVertically) {
             IconButton(onClick = onBack) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back") }
@@ -135,20 +160,42 @@ fun SiteDetailScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
             modifier = Modifier.fillMaxSize().navigationBarsPadding(),
         ) {
+            // Hero: outline, status, category and size at a glance
             item {
-                FpCard(contentPadding = 0.dp) {
-                    PolygonPreview(current.boundary, current.status.color(), Modifier.fillMaxWidth().height(190.dp))
+                FpCard(modifier = Modifier.fillMaxWidth(), contentPadding = 0.dp) {
+                    Box(Modifier.fillMaxWidth().height(210.dp)) {
+                        PolygonPreview(current.boundary, current.status.color(), Modifier.fillMaxSize())
+                        Row(
+                            Modifier.align(Alignment.TopStart).padding(12.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            StatusPill(current.status)
+                            if (current.hasPendingSync) PendingBadge()
+                        }
+                        SmallChip(current.category.label, modifier = Modifier.align(Alignment.TopEnd).padding(12.dp))
+                        Column(Modifier.align(Alignment.BottomStart).padding(14.dp)) {
+                            Text(Fmt.area(current.areaSqm), style = MaterialTheme.typography.headlineSmall)
+                            Text(
+                                Fmt.acres(current.areaSqm),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                 }
             }
             item {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    StatusPill(current.status)
-                    SmallChip(current.category.label)
-                    if (current.hasPendingSync) PendingBadge()
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    MetricTile("Perimeter", Fmt.length(current.perimeterM), Modifier.weight(1f))
+                    MetricTile("Corners", current.boundary.size.toString(), Modifier.weight(1f))
+                    MetricTile("Inspections", history.size.toString(), Modifier.weight(1f))
                 }
             }
+
+            // Geofenced check-in
             item {
-                FpCard {
+                FpCard(modifier = Modifier.fillMaxWidth()) {
                     Column {
                         Text(
                             checkIn.headline(),
@@ -179,70 +226,106 @@ fun SiteDetailScreen(
                     }
                 }
             }
-            item { Column {
-                SectionLabel("Status")
-                Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    SiteStatus.entries.forEach { status ->
-                        FilterChip(
-                            selected = current.status == status,
-                            onClick = { vm.setStatus(status) },
-                            label = { Text(status.label) },
-                            leadingIcon = { StatusDot(status, 8.dp) },
-                            shape = MaterialTheme.shapes.extraLarge,
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = status.color().copy(alpha = 0.2f),
-                                selectedLabelColor = MaterialTheme.colorScheme.onSurface,
-                            ),
-                        )
-                    }
-                }
-            } }
-            item { Column {
-                SectionLabel("Details")
-                FpCard {
-                    Column {
-                        KeyValueRow("Area", Fmt.areaWithAcres(current.areaSqm))
-                        KeyValueRow("Perimeter", Fmt.length(current.perimeterM))
-                        KeyValueRow("Corners", current.boundary.size.toString())
-                        KeyValueRow("Centre", Fmt.coordinates(current.centroid))
-                        KeyValueRow("Last inspection", current.lastInspectionAt?.let { Fmt.dateTime(it) } ?: "Never")
-                        if (current.description.isNotBlank()) {
-                            Spacer(Modifier.height(6.dp))
-                            Text(current.description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
-                    }
-                }
-            } }
-            item { SectionLabel("Inspections (${history.size})") }
-            if (history.isEmpty()) {
-                item {
-                    Text("No inspections submitted yet.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            } else {
-                items(history, key = { it.id }) { inspection ->
-                    FpCard {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Column(Modifier.weight(1f)) {
-                                Text(Fmt.dateTime(inspection.submittedAt ?: inspection.checkInAt), style = MaterialTheme.typography.titleSmall)
-                                Text(
-                                    "${inspection.photos.size} photo(s)" + if (inspection.notes.isNotBlank()) " · ${inspection.notes.take(40)}" else "",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                )
-                            }
-                            inspection.condition?.let { SmallChip(it.label, color = it.color()) }
-                            Spacer(Modifier.width(10.dp))
-                            Icon(
-                                if (inspection.synced) Icons.Filled.CloudDone else Icons.Filled.CloudOff,
-                                if (inspection.synced) "Synced" else "Not synced yet",
-                                tint = if (inspection.synced) StatusColors.Active else StatusColors.Repair,
+
+            item {
+                Column {
+                    SectionLabel("Status")
+                    Row(Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        SiteStatus.entries.forEach { status ->
+                            FilterChip(
+                                selected = current.status == status,
+                                onClick = { vm.setStatus(status) },
+                                label = { Text(status.label) },
+                                leadingIcon = { StatusDot(status, 8.dp) },
+                                shape = MaterialTheme.shapes.extraLarge,
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = status.color().copy(alpha = 0.2f),
+                                    selectedLabelColor = MaterialTheme.colorScheme.onSurface,
+                                ),
                             )
                         }
                     }
                 }
             }
+
+            item {
+                Column {
+                    SectionLabel("Details")
+                    FpCard(modifier = Modifier.fillMaxWidth()) {
+                        Column {
+                            KeyValueRow("Category", current.category.label)
+                            KeyValueRow("Centre", Fmt.coordinates(current.centroid))
+                            KeyValueRow("Last inspection", current.lastInspectionAt?.let { Fmt.dateTime(it) } ?: "Never")
+                            KeyValueRow("Sync", if (current.hasPendingSync) "Changes waiting to sync" else "Up to date")
+                            if (current.description.isNotBlank()) {
+                                Spacer(Modifier.height(6.dp))
+                                Text(
+                                    current.description,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Photos taken on this site's inspections, previewable full screen
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    SectionHeader("Photos", photos.size)
+                    SitePhotoStrip(photos, onOpen = { galleryStart = it })
+                }
+            }
+
+            // Attached files: pick, list, preview
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SectionHeader("Documents", documents.size, actionLabel = "Add", onAction = addFiles)
+                    if (documents.isEmpty()) {
+                        EmptyDocuments(addFiles)
+                    } else {
+                        documents.forEach { document ->
+                            DocumentRow(document, onClick = { openDocumentId = document.id })
+                        }
+                    }
+                }
+            }
+
+            item { SectionHeader("Inspections", history.size) }
+            if (history.isEmpty()) {
+                item {
+                    Text(
+                        "No inspections submitted yet.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            } else {
+                items(history, key = { it.id }) { inspection ->
+                    InspectionHistoryCard(inspection, current, onClick = { previewId = inspection.id })
+                }
+            }
         }
+    }
+
+    history.firstOrNull { it.id == previewId }?.let { inspection ->
+        current?.let { InspectionPreviewSheet(inspection, it, onDismiss = { previewId = null }) }
+    }
+
+    galleryStart?.let { start ->
+        ImageGalleryViewer(photos, start, onClose = { galleryStart = null })
+    }
+
+    documents.firstOrNull { it.id == openDocumentId }?.let { document ->
+        DocumentViewer(
+            document = document,
+            onClose = { openDocumentId = null },
+            onDelete = {
+                openDocumentId = null
+                vm.removeDocument(document.id)
+            },
+        )
     }
 
     if (editing && current != null) {

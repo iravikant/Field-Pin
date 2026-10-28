@@ -11,6 +11,7 @@ import com.fieldpin.domain.gis.CheckInStatus
 import com.fieldpin.domain.gis.GeoMath
 import com.fieldpin.domain.model.GeoPoint
 import com.fieldpin.domain.model.Site
+import com.fieldpin.domain.model.SiteStatus
 import com.fieldpin.ui.common.UiEvent
 import com.fieldpin.ui.common.startAsEvent
 import com.google.android.gms.maps.model.CameraPosition
@@ -35,6 +36,12 @@ class MapViewModel(
     val sites: StateFlow<List<Site>> = repo.observeSites("", null)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    /** Status filter shown as chips on the map (null = all). */
+    val filter = MutableStateFlow<SiteStatus?>(null)
+
+    val visibleSites: StateFlow<List<Site>> = combine(sites, filter) { all, f -> if (f == null) all else all.filter { it.status == f } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     private val selectedId = MutableStateFlow<String?>(null)
 
     /** The tapped site plus whether the user may check in right now (recomputed on every GPS fix). */
@@ -50,7 +57,7 @@ class MapViewModel(
 
     /** Picks the smallest polygon containing the tap (so nested sites stay selectable). */
     fun onMapTap(point: GeoPoint) {
-        selectedId.value = sites.value
+        selectedId.value = visibleSites.value
             .filter { GeoMath.contains(it.boundary, point) }
             .minByOrNull { it.areaSqm }
             ?.id

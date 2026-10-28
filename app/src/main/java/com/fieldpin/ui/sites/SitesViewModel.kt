@@ -2,6 +2,7 @@ package com.fieldpin.ui.sites
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.fieldpin.data.repo.AuthRepository
 import com.fieldpin.data.repo.SiteRepository
 import com.fieldpin.data.repo.SyncManager
 import com.fieldpin.domain.model.Site
@@ -20,7 +21,10 @@ import kotlinx.coroutines.flow.stateIn
 data class SitesSummary(val total: Int = 0, val needsRepair: Int = 0, val pending: Int = 0)
 
 @OptIn(FlowPreview::class, ExperimentalCoroutinesApi::class)
-class SitesViewModel(repo: SiteRepository, private val sync: SyncManager) : ViewModel() {
+class SitesViewModel(repo: SiteRepository, private val sync: SyncManager, auth: AuthRepository) : ViewModel() {
+    /** First name for the greeting. */
+    val firstName: String = auth.session.value?.name?.substringBefore(' ').orEmpty()
+
     val query = MutableStateFlow("")
     val filter = MutableStateFlow<SiteStatus?>(null)
 

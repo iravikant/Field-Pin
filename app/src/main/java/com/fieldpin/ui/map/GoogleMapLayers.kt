@@ -62,7 +62,7 @@ fun FieldMapView(
         MapProperties(
             mapType = mapType,
             mapStyleOptions = if (mapType == MapType.NORMAL) style else null,
-            isBuildingsEnabled = true, // 3D buildings when the camera is tilted
+            isBuildingEnabled = true, // 3D buildings when the camera is tilted
             minZoomPreference = 3f,
             maxZoomPreference = 21f,
         )

@@ -6,12 +6,14 @@ import androidx.lifecycle.viewModelScope
 import com.fieldpin.data.export.GeoJsonExporter
 import com.fieldpin.data.location.LiveLocation
 import com.fieldpin.data.location.LocationTracker
+import com.fieldpin.data.repo.DocumentRepository
 import com.fieldpin.data.repo.InspectionRepository
 import com.fieldpin.data.repo.SiteRepository
 import com.fieldpin.domain.gis.CheckInPolicy
 import com.fieldpin.domain.gis.CheckInStatus
 import com.fieldpin.domain.model.Inspection
 import com.fieldpin.domain.model.Site
+import com.fieldpin.domain.model.SiteDocument
 import com.fieldpin.domain.model.SiteCategory
 import com.fieldpin.domain.model.SiteStatus
 import com.fieldpin.ui.common.UiEvent
@@ -32,6 +34,7 @@ class SiteDetailViewModel(
     private val inspections: InspectionRepository,
     tracker: LocationTracker,
     private val exporter: GeoJsonExporter,
+    private val documentRepo: DocumentRepository,
 ) : ViewModel() {
     val live = LiveLocation(tracker, viewModelScope)
 
@@ -39,6 +42,9 @@ class SiteDetailViewModel(
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     val history: StateFlow<List<Inspection>> = inspections.observeSubmitted(siteId)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    val documents: StateFlow<List<SiteDocument>> = documentRepo.observe(siteId)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     val checkIn: StateFlow<CheckInStatus> = combine(site, live.fix) { s, fix ->
@@ -67,5 +73,23 @@ class SiteDetailViewModel(
             val uri = withContext(Dispatchers.IO) { exporter.export(current) }
             onReady(uri)
         }
+    }
+
+    fun attachDocuments(uris: List<Uri>) {
+        if (uris.isEmpty()) return
+        viewModelScope.launch {
+            val report = documentRepo.attach(siteId, uris)
+            val message = when {
+                report.errors.isNotEmpty() -> report.errors.first() +
+                    if (report.added > 0) " (${report.added} attached)" else ""
+                report.added == 1 -> "File attached"
+                else -> "${report.added} files attached"
+            }
+            _events.send(UiEvent.Message(message))
+        }
+    }
+
+    fun removeDocument(id: String) {
+        viewModelScope.launch { documentRepo.remove(id) }
     }
 }

@@ -3,6 +3,7 @@ package com.fieldpin.ui.account
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.fieldpin.data.local.AppPrefs
+import com.fieldpin.data.map.OfflineMapManager
 import com.fieldpin.data.location.LocationTracker
 import com.fieldpin.data.remote.MockServerStore
 import com.fieldpin.data.repo.AuthRepository
@@ -23,6 +24,7 @@ class AccountViewModel(
     private val tracker: LocationTracker,
     repo: SiteRepository,
     private val server: MockServerStore,
+    private val offlineMap: OfflineMapManager,
 ) : ViewModel() {
     val session = auth.session
     val themeMode = prefs.themeMode
@@ -31,6 +33,16 @@ class AccountViewModel(
     val lastSyncAt = sync.lastSyncAt
     val lastReport = sync.lastReport
     val simulated = tracker.simulated
+
+    // offline map pack
+    val offlineStats = offlineMap.stats
+    val offlineProgress = offlineMap.progress
+    val offlineComplete = offlineMap.complete
+    val offlineError = offlineMap.error
+
+    fun downloadOfflineMap() = offlineMap.downloadNow()
+
+    fun deleteOfflineMap() = offlineMap.clear()
 
     val pending: StateFlow<Int> = sync.pendingCount
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)

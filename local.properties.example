@@ -9,3 +9,8 @@ MAPS_API_KEY=
 # Base URLs per build type (exposed as BuildConfig.API_BASE_URL). Optional.
 API_BASE_URL_DEBUG=https://mock.debug.fieldpin.test/v1/
 API_BASE_URL_RELEASE=https://mock.fieldpin.test/v1/
+
+# XYZ tile template for the offline map pack saved on first run. Default is OpenStreetMap's public
+# server (fine for this small demo pack; read https://operations.osmfoundation.org/policies/tiles/).
+# Use a provider that permits offline storage for production.
+TILE_URL_TEMPLATE=https://tile.openstreetmap.org/{z}/{x}/{y}.png

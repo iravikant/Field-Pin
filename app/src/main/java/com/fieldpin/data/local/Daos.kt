@@ -78,3 +78,18 @@ interface InspectionDao {
     @Upsert
     suspend fun upsert(inspection: InspectionEntity)
 }
+
+@Dao
+interface SiteDocumentDao {
+    @Query("SELECT * FROM site_documents WHERE siteId = :siteId ORDER BY addedAt DESC")
+    fun observeForSite(siteId: String): Flow<List<SiteDocumentEntity>>
+
+    @Query("SELECT * FROM site_documents WHERE id = :id")
+    suspend fun getById(id: String): SiteDocumentEntity?
+
+    @Upsert
+    suspend fun upsert(document: SiteDocumentEntity)
+
+    @Query("DELETE FROM site_documents WHERE id = :id")
+    suspend fun delete(id: String)
+}

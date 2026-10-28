@@ -24,7 +24,8 @@ object ServerMerge {
 
         val applied = mutableListOf<String>()
         val conflicts = mutableListOf<ConflictDto>()
-        var site: SiteDto = existing
+        val current: SiteDto = existing
+        var site: SiteDto = current
         for (field in change.fields) {
             val yours = change.valueOf(field)
             val theirs = existing.valueOf(field)
