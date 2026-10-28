@@ -1,9 +1,11 @@
-## Copy to local.properties (git-ignored).
-## MAPS_API_KEY is REQUIRED for the map to show tiles (Google Maps SDK for Android).
-## Create one at https://console.cloud.google.com/google/maps-apis and enable "Maps SDK for Android".
-## Restrict it to package com.fieldpin + your signing SHA-1.
+## Copy to local.properties (git-ignored). NEVER commit the real file.
+
+# Google Maps SDK for Android key. Optional for building (the app builds and runs without it,
+# the map just shows a "key missing" notice). Create one in Google Cloud Console:
+#   1. enable "Maps SDK for Android"
+#   2. Credentials -> API key -> restrict to Android apps: package com.fieldpin + your SHA-1
 MAPS_API_KEY=
 
-# Base URLs per build type (exposed as BuildConfig.API_BASE_URL) - optional
+# Base URLs per build type (exposed as BuildConfig.API_BASE_URL). Optional.
 API_BASE_URL_DEBUG=https://mock.debug.fieldpin.test/v1/
 API_BASE_URL_RELEASE=https://mock.fieldpin.test/v1/

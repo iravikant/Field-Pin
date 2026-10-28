@@ -42,7 +42,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.foundation.text.KeyboardOptions
-
+import com.fieldpin.domain.model.GeoPoint
+import com.fieldpin.domain.model.SiteStatus
+import com.fieldpin.ui.theme.StatusColors
+import com.fieldpin.ui.theme.color
+import kotlin.math.cos
 
 @Composable
 fun FpCard(
@@ -66,6 +70,66 @@ fun FpCard(
             Box(Modifier.padding(contentPadding)) { content() }
         }
     }
+}
+
+@Composable
+fun StatusDot(status: SiteStatus, size: Dp = 10.dp) {
+    Box(Modifier.size(size).clip(CircleShape).background(status.color()))
+}
+
+@Composable
+fun StatusPill(status: SiteStatus, modifier: Modifier = Modifier) {
+    val c = status.color()
+    Row(
+        modifier
+            .clip(CircleShape)
+            .background(c.copy(alpha = 0.16f))
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        StatusDot(status, 7.dp)
+        Spacer(Modifier.width(6.dp))
+        Text(status.label, style = MaterialTheme.typography.labelMedium, color = c)
+    }
+}
+
+@Composable
+fun PendingBadge(modifier: Modifier = Modifier) {
+    val c = StatusColors.Repair
+    Row(
+        modifier
+            .clip(CircleShape)
+            .background(c.copy(alpha = 0.16f))
+            .padding(horizontal = 8.dp, vertical = 3.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(Icons.Filled.Sync, null, tint = c, modifier = Modifier.size(12.dp))
+        Spacer(Modifier.width(4.dp))
+        Text("Pending sync", style = MaterialTheme.typography.labelSmall, color = c)
+    }
+}
+
+@Composable
+fun SmallChip(text: String, modifier: Modifier = Modifier, color: Color = MaterialTheme.colorScheme.onSurfaceVariant) {
+    Text(
+        text,
+        style = MaterialTheme.typography.labelMedium,
+        color = color,
+        modifier = modifier
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+            .padding(horizontal = 10.dp, vertical = 4.dp),
+    )
+}
+
+@Composable
+fun SectionLabel(text: String, modifier: Modifier = Modifier) {
+    Text(
+        text.uppercase(),
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier.padding(bottom = 8.dp),
+    )
 }
 
 @Composable
@@ -222,5 +286,30 @@ fun ScreenHeader(
     }
 }
 
-
-
+/** Draws the site outline scaled to fit, correcting longitude for latitude so the shape is true. */
+@Composable
+fun PolygonPreview(boundary: List<GeoPoint>, color: Color, modifier: Modifier = Modifier) {
+    Canvas(modifier) {
+        if (boundary.size < 3) return@Canvas
+        val midLat = boundary.map { it.lat }.average()
+        val k = cos(Math.toRadians(midLat))
+        val xs = boundary.map { it.lng * k }
+        val ys = boundary.map { it.lat }
+        val minX = xs.min(); val maxX = xs.max(); val minY = ys.min(); val maxY = ys.max()
+        val w = (maxX - minX).coerceAtLeast(1e-9)
+        val h = (maxY - minY).coerceAtLeast(1e-9)
+        val pad = 14.dp.toPx()
+        val scale = minOf((size.width - 2 * pad) / w, (size.height - 2 * pad) / h)
+        val offX = (size.width - w * scale) / 2
+        val offY = (size.height - h * scale) / 2
+        fun pt(i: Int) = Offset((offX + (xs[i] - minX) * scale).toFloat(), (offY + (maxY - ys[i]) * scale).toFloat())
+        val path = Path().apply {
+            moveTo(pt(0).x, pt(0).y)
+            for (i in 1 until boundary.size) lineTo(pt(i).x, pt(i).y)
+            close()
+        }
+        drawPath(path, color.copy(alpha = 0.22f))
+        drawPath(path, color, style = Stroke(width = 2.5.dp.toPx()))
+        for (i in boundary.indices) drawCircle(color, 3.5.dp.toPx(), pt(i))
+    }
+}

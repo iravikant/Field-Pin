@@ -1,0 +1,9 @@
+[
+  {"featureType":"poi.business","stylers":[{"visibility":"off"}]},
+  {"featureType":"poi.medical","stylers":[{"visibility":"off"}]},
+  {"featureType":"poi","elementType":"labels.icon","stylers":[{"visibility":"off"}]},
+  {"featureType":"transit.station","stylers":[{"visibility":"off"}]},
+  {"featureType":"poi.park","elementType":"geometry","stylers":[{"color":"#d4efdc"}]},
+  {"featureType":"water","elementType":"geometry","stylers":[{"color":"#bfe6e1"}]},
+  {"featureType":"road.highway","elementType":"geometry","stylers":[{"color":"#fde9b8"}]}
+]

@@ -1,5 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <style name="Theme.FieldPin" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- Window/splash colours only; the real theme lives in Compose (ui/theme). -->
+    <style name="Theme.FieldPin" parent="android:Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/fp_black</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
+    </style>
 </resources>
